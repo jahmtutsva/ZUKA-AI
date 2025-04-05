@@ -124,7 +124,7 @@ Matrix.ev.on('connection.update', (update) => {
 *Thanks for using JAWAD-MD 🚩* 
 
 > Join WhatsApp Channel: ⤵️  
-https://whatsapp.com/channel/0029Vb6I1eaB4hdSaSu02A2X
+https://whatsapp.com/channel/0029Vb5n6oH0QeaoT1Shcn35
 
 - *YOUR PREFIX:* = ${prefix}
 
