@@ -46,8 +46,9 @@ const Settings = sequelize.define('Settings', {
   try {
     await sequelize.sync();
     await Settings.findOrCreate({ where: { id: 1 } });
+    console.log('Database ready');
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('Database initialization error:', error);
   }
 })();
 
