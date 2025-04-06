@@ -1,7 +1,7 @@
 import pkg from '@whiskeysockets/baileys';
 const { proto, downloadContentFromMessage } = pkg;
-import config from '../data/database.js';
-import { DeletedMessage, Settings } from './databaseManager.js';
+import config from '../config.cjs';
+import { DeletedMessage, Settings } from '../data/database.js';
 
 class AntiDeleteSystem {
   constructor() {
@@ -21,13 +21,21 @@ class AntiDeleteSystem {
 
   async addMessage(key, message) {
     try {
-      await DeletedMessage.create({
-        id: key,
-        ...message,
-        media: message.media ? Buffer.from(message.media) : null
+      // First try to update existing message
+      const [affectedRows] = await DeletedMessage.update(message, {
+        where: { id: key }
       });
+      
+      // If no rows were updated, insert new message
+      if (affectedRows === 0) {
+        await DeletedMessage.create({
+          id: key,
+          ...message,
+          media: message.media ? Buffer.from(message.media) : null
+        });
+      }
     } catch (error) {
-      console.error('Failed to save message:', error);
+      console.error('Message save error:', error.message);
     }
   }
 
