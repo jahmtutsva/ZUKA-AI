@@ -28,6 +28,11 @@ const DeletedMessage = sequelize.define('DeletedMessage', {
 });
 
 const Settings = sequelize.define('Settings', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    defaultValue: 1
+  },
   enabled: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
@@ -46,7 +51,6 @@ const Settings = sequelize.define('Settings', {
   try {
     await sequelize.sync();
     await Settings.findOrCreate({ where: { id: 1 } });
-    console.log('Database ready');
   } catch (error) {
     console.error('Database initialization error:', error);
   }
