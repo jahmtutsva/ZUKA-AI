@@ -7,6 +7,7 @@ class AntiDeleteSystem {
   constructor() {
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
     this.cleanupInterval = setInterval(() => this.cleanExpiredMessages(), this.cacheExpiry);
+    this.lastRecoveryTimestamps = new Map(); // Anti-spam tracking
   }
 
   async isEnabled() {
@@ -21,13 +22,9 @@ class AntiDeleteSystem {
 
   async addMessage(key, message) {
     try {
-      // First try to update existing message
-      const [affectedRows] = await DeletedMessage.update(message, {
-        where: { id: key }
-      });
-      
-      // If no rows were updated, insert new message
-      if (affectedRows === 0) {
+      // Check if message already exists
+      const existing = await DeletedMessage.findByPk(key);
+      if (!existing) {
         await DeletedMessage.create({
           id: key,
           ...message,
@@ -35,7 +32,7 @@ class AntiDeleteSystem {
         });
       }
     } catch (error) {
-      console.error('Message save error:', error.message);
+      console.error('Failed to save message:', error.message);
     }
   }
 
@@ -64,6 +61,17 @@ class AntiDeleteSystem {
       hour: '2-digit',
       minute: '2-digit'
     }) + ' PKT';
+  }
+
+  // Anti-spam check
+  shouldRecover(chatJid) {
+    const now = Date.now();
+    const lastRecovery = this.lastRecoveryTimestamps.get(chatJid) || 0;
+    if (now - lastRecovery < 2000) { // 2 second cooldown
+      return false;
+    }
+    this.lastRecoveryTimestamps.set(chatJid, now);
+    return true;
   }
 
   destroy() {
@@ -201,7 +209,7 @@ const AntiDelete = async (m, Matrix) => {
     }
   });
 
-  // Deletion handling
+  // Deletion handling with anti-spam
   Matrix.ev.on('messages.update', async (updates) => {
     if (!await antiDelete.isEnabled() || !updates?.length) return;
 
@@ -211,6 +219,12 @@ const AntiDelete = async (m, Matrix) => {
         const isDeleted = updateData?.messageStubType === proto.WebMessageInfo.StubType.REVOKE;
         
         if (!isDeleted || key.fromMe) continue;
+
+        // Anti-spam check
+        if (!antiDelete.shouldRecover(key.remoteJid)) {
+          console.log('Skipping recovery due to anti-spam');
+          continue;
+        }
 
         const cachedMsg = await antiDelete.getMessage(key.id);
         if (!cachedMsg) continue;
