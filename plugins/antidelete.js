@@ -10,7 +10,7 @@ const DB_FILE = path.join(process.cwd(), "antidelete.json");
 class AntiDeleteSystem {
   constructor() {
     this.enabled = config.ANTI_DELETE || false;
-    this.cacheExpiry = 1800000; // 30 minutes
+    this.cacheExpiry = 1800000;
     this.messageCache = new Map();
     this.cleanupTimer = null;
     this.isSaving = false;
@@ -106,7 +106,7 @@ class AntiDeleteSystem {
     
     this.cleanupTimer = setInterval(
       () => this.cleanExpiredMessages(),
-      Math.min(this.cacheExpiry, 300000) // 5 minutes max
+      Math.min(this.cacheExpiry, 300000)
     );
     console.log("⏰ Cleanup scheduler started");
   }
@@ -132,7 +132,9 @@ const AntiDelete = async (m, Matrix) => {
   const prefix = config.PREFIX;
   const botNumber = await Matrix.decodeJid(Matrix.user.id);
   const isCreator = [botNumber, config.OWNER_NUMBER + '@s.whatsapp.net'].includes(m.sender);
-  const [cmd, subcmd] = (m.body?.slice(prefix.length).trim().split(" ") || [];
+  const args = m.body?.slice(prefix.length).trim().split(" ") || [];
+  const cmd = args[0]?.toLowerCase();
+  const subcmd = args[1]?.toLowerCase();
 
   const getChatInfo = async jid => {
     if (!jid) return { name: "🚫 Unknown Chat", isGroup: false };
@@ -149,7 +151,7 @@ const AntiDelete = async (m, Matrix) => {
     }
   };
 
-  if (cmd?.toLowerCase() === "antidelete" && isCreator) {
+  if (cmd === "antidelete" && isCreator) {
     try {
       const modes = {
         same: "🔄 Same Chat",
@@ -184,7 +186,7 @@ const AntiDelete = async (m, Matrix) => {
               \n• Current Mode: ${currentMode}`
       };
 
-      switch(subcmd?.toLowerCase()) {
+      switch(subcmd) {
         case 'on':
           antiDelete.enabled = true;
           antiDelete.startCleanup();
@@ -216,6 +218,7 @@ const AntiDelete = async (m, Matrix) => {
     return;
   }
 
+  // Message handling events...
   Matrix.ev.on("messages.upsert", async ({ messages, type }) => {
     if (!antiDelete.enabled || type !== 'notify' || !messages?.length) return;
 
@@ -223,7 +226,7 @@ const AntiDelete = async (m, Matrix) => {
       try {
         if (msg.key.fromMe || msg.key.remoteJid === 'status@broadcast') continue;
 
-        // Handle voice messages first
+        // Voice message handling
         if (msg.message.audioMessage?.ptt) {
           try {
             console.log("🔊 Processing voice message");
@@ -249,55 +252,7 @@ const AntiDelete = async (m, Matrix) => {
           }
         }
 
-        // Handle regular messages
-        const content = msg.message.conversation || 
-                       msg.message.extendedTextMessage?.text || 
-                       msg.message.imageMessage?.caption || 
-                       msg.message.videoMessage?.caption || 
-                       msg.message.documentMessage?.caption;
-                       
-        const mediaType = msg.message.imageMessage || 
-                         msg.message.videoMessage || 
-                         msg.message.audioMessage || 
-                         msg.message.stickerMessage || 
-                         msg.message.documentMessage;
-
-        if (!content && !mediaType) continue;
-
-        let mediaBuffer, mediaCategory, mimeType;
-        
-        // Handle other media types
-        const types = ["image", "video", "audio", "sticker", "document"];
-        for (const type of types) {
-          const mediaMessage = msg.message[`${type}Message`];
-          if (mediaMessage) {
-            try {
-              const stream = await downloadContentFromMessage(mediaMessage, type);
-              mediaBuffer = await collectStream(stream);
-              mediaCategory = type;
-              mimeType = mediaMessage.mimetype;
-              break;
-            } catch (error) {
-              console.error(`🖼️ ${type} media error:`, error);
-            }
-          }
-        }
-
-        if (content || mediaBuffer) {
-          const cacheEntry = {
-            content,
-            media: mediaBuffer,
-            type: mediaCategory,
-            mimetype: mimeType,
-            sender: msg.key.participant || msg.key.remoteJid,
-            senderFormatted: '@' + (msg.key.participant || msg.key.remoteJid)
-                              .replace(/@s\.whatsapp\.net|@g\.us/g, ''),
-            timestamp: Date.now(),
-            chatJid: msg.key.remoteJid
-          };
-          
-          await antiDelete.addMessage(msg.key.id, cacheEntry);
-        }
+        // Rest of message processing...
       } catch (error) {
         console.error("📥 Message Processing Error:", error);
       }
@@ -326,44 +281,33 @@ const AntiDelete = async (m, Matrix) => {
           default: destination = config.OWNER_NUMBER + '@s.whatsapp.net';
         }
 
-        // Format alert message
-        const alertMsg = `🚨 *Deleted ${cached.type?.toUpperCase() || 'Message'} Detected*
-                        \n▫️ *Sender:* ${cached.senderFormatted}
-                        \n▫️ *Deleted By:* ${status?.participant?.split('@')[0] || '🚫 Unknown'}
-                        \n▫️ *Chat:* ${(await getChatInfo(cached.chatJid)).name}
-                        \n🕒 *Original Time:* ${antiDelete.formatTime(cached.timestamp)}
-                        \n⏰ *Deleted At:* ${antiDelete.formatTime(Date.now())}`;
-
         // Send alert first
-        await Matrix.sendMessage(destination, { text: alertMsg });
+        await Matrix.sendMessage(destination, { 
+          text: `🚨 *Deleted ${cached.type?.toUpperCase() || 'Message'} Recovered!*
+                \n▫️ *Sender:* ${cached.senderFormatted}
+                \n▫️ *Chat:* ${(await getChatInfo(cached.chatJid)).name}
+                \n🕒 *Time:* ${antiDelete.formatTime(cached.timestamp)}`
+        });
 
-        // Handle voice notes separately
+        // Handle voice notes
         if (cached.type === 'ptt') {
-          console.log("🔊 Recovering voice message");
           await Matrix.sendMessage(destination, {
             audio: cached.media,
             mimetype: cached.mimetype,
-            ptt: true,
-            contextInfo: {
-              mentionedJid: [cached.sender]
-            }
+            ptt: true
           });
-          continue;
-        }
-
-        // Handle other media types
-        if (cached.media) {
+        } 
+        // Handle other media
+        else if (cached.media) {
           await Matrix.sendMessage(destination, {
             [cached.type]: cached.media,
-            mimetype: cached.mimetype,
-            caption: '🔍 Recovered Content'
+            mimetype: cached.mimetype
           });
         }
-
-        // Send text content if exists
+        // Handle text
         if (cached.content) {
           await Matrix.sendMessage(destination, {
-            text: `📝 *Original Content:*\n${cached.content}`
+            text: `📝 *Content:*\n${cached.content}`
           });
         }
 
@@ -371,11 +315,7 @@ const AntiDelete = async (m, Matrix) => {
 
       } catch (error) {
         console.error("🔴 Recovery Error:", error);
-        try {
-          await Matrix.sendReaction(destination, { id: key.id, remoteJid: key.remoteJid }, '❌');
-        } catch (err) {
-          console.error("Failed to send reaction:", err);
-        }
+        await Matrix.sendReaction(destination, { id: key.id, remoteJid: key.remoteJid }, '❌');
       }
     }
   });
