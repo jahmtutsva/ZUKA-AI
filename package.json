@@ -51,8 +51,6 @@
     "pdfkit": "^0.15.0",
     "pino": "^8.20.0",
     "pm2": "^6.0.5",
-    "sequelize": "^6.37.5",
-    "sqlite3": "^5.1.7",
     "proto": "^1.0.19",
     "qrcode": "^1.5.3",
     "qrcode-terminal": "^0.12.0",
