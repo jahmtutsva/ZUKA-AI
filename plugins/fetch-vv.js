@@ -7,80 +7,67 @@ const OwnerCmd = async (m, Matrix) => {
   const ownerNumber = config.OWNER_NUMBER + '@s.whatsapp.net';
   const prefix = config.PREFIX;
 
-  // Check if sender is Owner or Bot
   const isOwner = m.sender === ownerNumber;
   const isBot = m.sender === botNumber;
   const isAuthorized = isOwner || isBot;
 
-  // Extract command if prefixed
-  const cmd = m.body.startsWith(prefix) 
-    ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() 
+  const cmd = m.body.startsWith(prefix)
+    ? m.body.slice(prefix.length).split(' ')[0].toLowerCase()
     : '';
 
-  // Detect reaction on View Once message
-  const isReaction = m.message?.reactionMessage;
-  const reactedToViewOnce = isReaction && m.quoted && (m.quoted.message.viewOnceMessage || m.quoted.message.viewOnceMessageV2);
+  // Updated Emoji-only or Emoji + short text
+  const emojiRegex = /^[\p{Emoji}\u200d\u20e3]+$/u;
+  const emojiAndTextRegex = /^[\p{Emoji}\u200d\u20e3\s\w.,!?\-]{1,15}$/u;
+  const isEmojiReply = m.body && (emojiRegex.test(m.body.trim()) || emojiAndTextRegex.test(m.body.trim()));
 
-  // Detect emoji reply (alone or with text) only on View Once media
-  const isEmojiReply = m.body && /^[\p{Emoji}](\s|\S)*$/u.test(m.body.trim()) && 
-                       m.quoted && (m.quoted.message.viewOnceMessage || m.quoted.message.viewOnceMessageV2);
+  // Keywords for silent unlock (e.g., "send", "open", "show")
+  const keywordTriggers = ['send', 'open', 'show', 'unlock', 'view'];
+  const isKeywordReply = m.body && keywordTriggers.some(word => m.body.toLowerCase().includes(word));
 
-  // Secret Mode = Emoji Reply or Reaction (For Bot/Owner Only) on View Once media
-  const secretMode = (isEmojiReply || reactedToViewOnce) && isAuthorized;
+  // Secret Mode only if reply + from Owner or Bot
+  const secretMode = (isEmojiReply || isKeywordReply) && isAuthorized && !!m.quoted;
 
-  // Allow only `.vv`, `.vv2`, `.vv3`
-  if (cmd && !['vv', 'vv2', 'vv3'].includes(cmd)) return;
-  
-  // Restrict VV commands properly
-  if (cmd && !isAuthorized) return m.reply('*Only the owner or bot can use this command!*');
+  // Restrict to vv and vv2 only
+  if (cmd && !['vv', 'vv2'].includes(cmd)) return;
+  if (cmd && !isAuthorized) return;
 
-  // If not command & not secret mode, exit
   if (!cmd && !secretMode) return;
 
-  // Ensure the message is a reply to a View Once message
-  const targetMessage = reactedToViewOnce ? m.quoted : m;
-  if (!targetMessage.quoted) return;
-  
-  let msg = targetMessage.quoted.message;
+  // Process View Once content
+  const targetMessage = m.quoted;
+  if (!targetMessage || !targetMessage.message) return;
+
+  let msg = targetMessage.message;
   if (msg.viewOnceMessageV2) msg = msg.viewOnceMessageV2.message;
   else if (msg.viewOnceMessage) msg = msg.viewOnceMessage.message;
 
-  // Additional check to ensure it's media (image, video, or audio)
-  const messageType = msg ? Object.keys(msg)[0] : null;
-  const isMedia = messageType && ['imageMessage', 'videoMessage', 'audioMessage'].includes(messageType);
-  
-  if (!msg || !isMedia) return;
+  if (!msg) return;
 
   try {
-    let buffer = await downloadMediaMessage(targetMessage.quoted, 'buffer');
+    const messageType = Object.keys(msg)[0];
+    const buffer = await downloadMediaMessage(targetMessage, 'buffer');
     if (!buffer) return;
 
-    let mimetype = msg.audioMessage?.mimetype || 'audio/ogg';
-    let caption = `> *© Powered By JawadTechX*`;
+    const mimetype = msg.audioMessage?.mimetype || 'audio/ogg';
+    const caption = `> *© Powered By JawadTechX*`;
 
-    // Set recipient
-    let recipient = secretMode || cmd === 'vv2' 
+    const recipient = secretMode || cmd === 'vv2'
       ? botNumber
-      : cmd === 'vv3' 
-        ? ownerNumber
-        : m.from;
+      : m.from;
 
     if (messageType === 'imageMessage') {
       await Matrix.sendMessage(recipient, { image: buffer, caption });
     } else if (messageType === 'videoMessage') {
       await Matrix.sendMessage(recipient, { video: buffer, caption, mimetype: 'video/mp4' });
-    } else if (messageType === 'audioMessage') {  
+    } else if (messageType === 'audioMessage') {
       await Matrix.sendMessage(recipient, { audio: buffer, mimetype, ptt: true });
     }
 
-    // Silent execution for secret mode
-    if (!cmd) return;
-    m.reply('*Media sent successfully!*');
-
+    // Silent mode: no reply
   } catch (error) {
     console.error(error);
-    if (cmd) await m.reply('*Failed to process View Once message!*');
   }
 };
 
+// Coded by JawadTechX
 export default OwnerCmd;
