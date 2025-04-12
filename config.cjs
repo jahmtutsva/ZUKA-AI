@@ -3,7 +3,7 @@ const fs = require("fs");
 require("dotenv").config();
 
 const config = {
-  SESSION_ID: process.env.SESSION_ID || "Your Session Id",
+  SESSION_ID: process.env.SESSION_ID || "KHAN-MD~vQJjzI6Y#vHRpMFcHY-bF3g4w5fpxqyjI1gQDpjy2nZb21KKFVCI",
   PREFIX: process.env.PREFIX || '.',
   AUTO_STATUS_SEEN: process.env.AUTO_STATUS_SEEN !== undefined ? process.env.AUTO_STATUS_SEEN === 'true' : true, 
   AUTO_STATUS_REPLY: process.env.AUTO_STATUS_REPLY !== undefined ? process.env.AUTO_STATUS_REPLY === 'true' : true,
@@ -21,11 +21,11 @@ const config = {
   REJECT_CALL: process.env.REJECT_CALL !== undefined ? process.env.REJECT_CALL === 'true' : false, 
   NOT_ALLOW: process.env.NOT_ALLOW !== undefined ? process.env.NOT_ALLOW === 'true' : true,
   MODE: process.env.MODE || "public",
-  BOT_NAME: process.env.BOT_NAME || "JAWAD-MD",
-  MENU_IMAGE: process.env.MENU_IMAGE || "https://files.catbox.moe/7l1tt5.jpg",
-  DESCRIPTION: process.env.DESCRIPTION || "© ᴘᴏᴡᴇʀᴇᴅ ʙʏ Jᴀᴡᴀᴅ TᴇᴄʜX",
-  OWNER_NAME: process.env.OWNER_NAME || "JawadTechX",
-  OWNER_NUMBER: process.env.OWNER_NUMBER || "923427582273",
+  BOT_NAME: process.env.BOT_NAME || "ZUKA AI",
+  MENU_IMAGE: process.env.MENU_IMAGE || <a href="https://www.vecteezy.com/photo/22255561-robot-working-on-laptop-computer-artificial-intelligence-concept-3d-rendering-generative-ai">Robot working on laptop computer. Artificial intelligence concept. 3D Rendering Stock photos by Vecteezy</a>
+  DESCRIPTION: process.env.DESCRIPTION || "MULTI DEVICE WHATSAPP BOT",
+  OWNER_NAME: process.env.OWNER_NAME || "TINASHE ZUKA",
+  OWNER_NUMBER: process.env.OWNER_NUMBER || "263789544743",
   GEMINI_KEY: process.env.GEMINI_KEY || "AIzaSyCUPaxfIdZawsKZKqCqJcC-GWiQPCXKTDc",
   WELCOME: process.env.WELCOME !== undefined ? process.env.WELCOME === 'true' : false, 
 };
