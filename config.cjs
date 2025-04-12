@@ -22,7 +22,7 @@ const config = {
   NOT_ALLOW: process.env.NOT_ALLOW !== undefined ? process.env.NOT_ALLOW === 'true' : true,
   MODE: process.env.MODE || "public",
   BOT_NAME: process.env.BOT_NAME || "ZUKA AI",
-  MENU_IMAGE: process.env.MENU_IMAGE || <a href="https://www.vecteezy.com/photo/22255561-robot-working-on-laptop-computer-artificial-intelligence-concept-3d-rendering-generative-ai">Robot working on laptop computer. Artificial intelligence concept. 3D Rendering Stock photos by Vecteezy</a>
+  MENU_IMAGE: process.env.MENU_IMAGE ||"https://www.vecteezy.com/photo/22255561-robot-working-on-laptop-computer-artificial-intelligence-concept-3d-rendering-generative-ai"
   DESCRIPTION: process.env.DESCRIPTION || "MULTI DEVICE WHATSAPP BOT",
   OWNER_NAME: process.env.OWNER_NAME || "TINASHE ZUKA",
   OWNER_NUMBER: process.env.OWNER_NUMBER || "263789544743",
