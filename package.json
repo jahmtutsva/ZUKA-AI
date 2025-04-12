@@ -1,16 +1,16 @@
 {
-  "name": "JAWAD-MD",
-  "version": "10.8.1",
-  "description": "JAWAD-XMD latest multi device whatsapp bot",
+  "name": "ZUKA AI",
+  "version": "1.0",
+  "description": "latest multi device whatsapp bot",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "pm2 start index.js --deep-monitoring --attach --name JAWAD-XMD",
-    "stop": "pm2 stop JAWAD-XMD",
-    "restart": "pm2 restart JAWAD-XMD"
+    "stop": "pm2 stop ZUKA AI",
+    "restart": "pm2 restart ZUKA AI"
   },
-  "keywords": ["jawad-md", "whatsapp-bot", "whatsapp md bot"],
-  "author": "JawadTechX",
+  "keywords": ["zukaai", "whatsapp-bot", "whatsapp md bot"],
+  "author": "Tinashe Zuka",
   "license": "ISC",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
